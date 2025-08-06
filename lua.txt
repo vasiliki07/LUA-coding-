@@ -1,0 +1,80 @@
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+
+-- Setup
+local moveAmount = 5
+local tweenTime = 1
+local isOpen = false
+
+-- References
+local leftDoor = workspace.LeftDoor
+local rightDoor = workspace.RightDoor
+local trigger = workspace.Trigger
+
+-- Make sure both doors are anchored
+leftDoor.Anchored = true
+rightDoor.Anchored = true
+
+-- Store closed positions
+local leftClosed = leftDoor.CFrame
+local rightClosed = rightDoor.CFrame
+
+-- Move each door along its own local RightVector (X direction)
+local leftOpen = leftClosed + (leftDoor.CFrame.RightVector * moveAmount)
+local rightOpen = rightClosed - (rightDoor.CFrame.RightVector * moveAmount)
+
+-- Tweens
+local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+
+local openLeftTween = TweenService:Create(leftDoor, tweenInfo, {CFrame = leftOpen})
+local openRightTween = TweenService:Create(rightDoor, tweenInfo, {CFrame = rightOpen})
+local closeLeftTween = TweenService:Create(leftDoor, tweenInfo, {CFrame = leftClosed})
+local closeRightTween = TweenService:Create(rightDoor, tweenInfo, {CFrame = rightClosed})
+
+-- Door Logic
+local function openDoors()
+	if not isOpen then
+		isOpen = true
+		openLeftTween:Play()
+		openRightTween:Play()
+	end
+end
+
+local function closeDoors()
+	if isOpen then
+		isOpen = false
+		closeLeftTween:Play()
+		closeRightTween:Play()
+	end
+end
+
+-- Detection Loop
+while true do
+	wait(0.1)
+
+	local regionSize = trigger.Size
+	local regionCFrame = trigger.CFrame
+
+	local region = Region3.new(
+		regionCFrame.Position - regionSize / 2,
+		regionCFrame.Position + regionSize / 2
+	):ExpandToGrid(4)
+
+	local parts = workspace:FindPartsInRegion3WithIgnoreList(region, {leftDoor, rightDoor, trigger}, 100)
+	local playerFound = false
+
+	for _, part in pairs(parts) do
+		local char = part.Parent
+		if char and Players:GetPlayerFromCharacter(char) then
+			playerFound = true
+			break
+		end
+	end
+
+	if playerFound then
+		openDoors()
+	else
+		closeDoors()
+	end
+end
+local door = workspace.DoorPart
